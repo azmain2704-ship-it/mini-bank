@@ -1,0 +1,272 @@
+{
+ "info": {
+  "name": "Mini Bank API",
+  "description": "Run the folder top to bottom (Runner) against a running app. Set baseUrl to the deployed URL to test the live one.",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "variable": [
+  {
+   "key": "baseUrl",
+   "value": "http://localhost:8080"
+  },
+  {
+   "key": "alice",
+   "value": ""
+  },
+  {
+   "key": "bob",
+   "value": ""
+  }
+ ],
+ "item": [
+  {
+   "name": "1. Open Alice's account (£10,000)",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/accounts"
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\n  \"ownerName\": \"Alice\",\n  \"openingBalance\": 10000.0\n}"
+    }
+   },
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('201 Created', () => pm.response.to.have.status(201));",
+       "pm.collectionVariables.set('alice', pm.response.json().id);"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "2. Open Bob's account (£0)",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/accounts"
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\n  \"ownerName\": \"Bob\",\n  \"openingBalance\": 0\n}"
+    }
+   },
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('201 Created', () => pm.response.to.have.status(201));",
+       "pm.collectionVariables.set('bob', pm.response.json().id);"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "3. Alice sends Bob £25.50",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Idempotency-Key",
+      "value": "{{$guid}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/transfers"
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\n  \"fromAccountId\": {{alice}},\n  \"toAccountId\": {{bob}},\n  \"amount\": 25.5\n}"
+    }
+   },
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Money moved', () => { pm.response.to.have.status(201); pm.expect(pm.response.json().status).to.eql('COMPLETED'); });"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "4. Bob tries to send £1,000 he doesn't have",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/transfers"
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\n  \"fromAccountId\": {{bob}},\n  \"toAccountId\": {{alice}},\n  \"amount\": 1000\n}"
+    }
+   },
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Refused with 422 and recorded', () => { pm.response.to.have.status(422); pm.expect(pm.response.json().status).to.eql('REJECTED'); });"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "5. Negative amount",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/transfers"
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\n  \"fromAccountId\": {{alice}},\n  \"toAccountId\": {{bob}},\n  \"amount\": -5\n}"
+    }
+   },
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "6. Large transfer (gets a fraud flag)",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/transfers"
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\n  \"fromAccountId\": {{alice}},\n  \"toAccountId\": {{bob}},\n  \"amount\": 6000\n}"
+    }
+   },
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Flagged LARGE_AMOUNT', () => pm.expect(pm.response.json().fraudFlags).to.include('LARGE_AMOUNT'));"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "7. Alice's history",
+   "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+     "raw": "{{baseUrl}}/api/accounts/{{alice}}/transfers"
+    }
+   },
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Has transfers', () => pm.expect(pm.response.json().length).to.be.above(0));"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "8. Fraud flags",
+   "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+     "raw": "{{baseUrl}}/api/fraud-flags"
+    }
+   },
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('200 OK', () => pm.response.to.have.status(200));"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "9. Bob's balance",
+   "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+     "raw": "{{baseUrl}}/api/accounts/{{bob}}"
+    }
+   },
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('200 OK', () => pm.response.to.have.status(200));"
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}
