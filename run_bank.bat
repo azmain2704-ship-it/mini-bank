@@ -29,6 +29,14 @@ if not defined JAVA_OK (
     set "PATH=%CD%\.tools\jdk\bin;%PATH%"
 )
 
+REM ---- Maven wrapper settings (recreated if missing) ----
+if not exist ".mvn\wrapper\maven-wrapper.properties" (
+    if not exist ".mvn\wrapper" mkdir ".mvn\wrapper"
+    > ".mvn\wrapper\maven-wrapper.properties" echo wrapperVersion=3.3.2
+    >> ".mvn\wrapper\maven-wrapper.properties" echo distributionType=only-script
+    >> ".mvn\wrapper\maven-wrapper.properties" echo distributionUrl=https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.9/apache-maven-3.9.9-bin.zip
+)
+
 echo Starting the bank. The first run downloads Maven and the libraries, so give it a few minutes.
 echo Swagger UI will open in your browser once it's up: http://localhost:8080/swagger-ui.html
 echo Leave this window open while you use it. Close it to stop the bank.
