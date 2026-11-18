@@ -6,6 +6,8 @@ The behind-the-scenes part of a bank, with no screens: a REST API that opens acc
 
 Java 21, Spring Boot, PostgreSQL, Flyway and Docker. Tested with JUnit, and with Postman by hand.
 
+**Try it live: [mini-bank-4x45.onrender.com/swagger-ui.html](https://mini-bank-4x45.onrender.com/swagger-ui.html)** (running on Render's free tier with a Neon PostgreSQL database, so the first request after a quiet spell takes about a minute while the server wakes up).
+
 ## What it does
 
 - **Accounts** with a balance. You can open one with a starting balance and pay money in.
