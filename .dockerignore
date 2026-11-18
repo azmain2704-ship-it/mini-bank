@@ -1,0 +1,7 @@
+target/
+data/
+.git/
+.github/
+.tools/
+postman/
+*.bat
