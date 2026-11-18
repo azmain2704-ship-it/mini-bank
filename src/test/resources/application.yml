@@ -1,0 +1,16 @@
+# Tests use an in-memory H2 database in PostgreSQL mode, with the same Flyway migrations as production.
+spring:
+  datasource:
+    url: jdbc:h2:mem:minibank;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;LOCK_TIMEOUT=10000
+    username: sa
+    password: ""
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+
+bank:
+  fraud:
+    large-amount: 5000.00
+    rapid-count: 5
+    rapid-window: 60s
