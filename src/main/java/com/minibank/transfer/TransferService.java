@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import com.minibank.account.Account;
 import com.minibank.account.AccountRepository;
+import com.minibank.common.IdempotencyKeyReusedException;
 import com.minibank.common.InvalidRequestException;
 import com.minibank.common.Money;
 import com.minibank.common.NotFoundException;
@@ -43,7 +44,17 @@ public class TransferService {
         if (idempotencyKey != null) {
             Optional<Transfer> earlier = transfers.findByIdempotencyKey(idempotencyKey);
             if (earlier.isPresent()) {
-                return new TransferOutcome(TransferResponse.from(earlier.get()), true);
+                Transfer t = earlier.get();
+                // Same key but different details means the client has a bug (or reused a key). Replaying the old
+                // transfer would hide that, so refuse instead and leave the money alone.
+                boolean sameRequest = t.getFromAccount().getId().equals(request.fromAccountId())
+                        && t.getToAccount().getId().equals(request.toAccountId())
+                        && t.getAmountPence() == Money.toPence(request.amount());
+                if (!sameRequest) {
+                    throw new IdempotencyKeyReusedException(
+                            "Idempotency-Key '" + idempotencyKey + "' was already used for a different transfer");
+                }
+                return new TransferOutcome(TransferResponse.from(t), true);
             }
         }
 
