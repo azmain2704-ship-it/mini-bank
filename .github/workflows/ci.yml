@@ -9,20 +9,34 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
           cache: maven
       - run: mvn -B verify
+      - name: Test results table
+        if: always()
+        run: |
+          {
+            echo "### Test results"
+            echo ""
+            echo "| Test class | Tests | Failures | Errors |"
+            echo "|---|---|---|---|"
+            for f in target/surefire-reports/TEST-*.xml; do
+              name=$(grep -o -m1 '<testsuite[^>]*' "$f" | grep -o ' name="[^"]*"' | head -1 | cut -d'"' -f2)
+              get() { grep -o -m1 '<testsuite[^>]*' "$f" | grep -o " $1=\"[0-9]*\"" | head -1 | cut -d'"' -f2; }
+              echo "| ${name##*.} | $(get tests) | $(get failures) | $(get errors) |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
 
   docker:
     name: Docker + PostgreSQL smoke test
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Start the app and database
         run: docker compose up -d --build
       - name: Smoke test
