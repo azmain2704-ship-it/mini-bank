@@ -15,7 +15,7 @@ Java 21, Spring Boot, PostgreSQL, Flyway and Docker. Tested with JUnit, and with
 - **Rules:** you can't send more than you have, and you can't send zero, a negative amount, fractions of a penny or money to the same account.
 - **History:** every transfer gets a row in the history table, including refused ones. A refused transfer is still something that happened, and a bank would want a record of it.
 - **Fraud flags:** a transfer of £5,000 or more, or a 5th transfer out of the same account inside a minute, gets flagged for review. Flags don't block the transfer, the same way a real bank lets the payment through and has someone look at it later. The limits live in `application.yml`.
-- **Idempotency keys:** if a client sends the same transfer twice with the same `Idempotency-Key` header (say the connection dropped and it retried), the money only moves once and the second call gets the original result back.
+- **Idempotency keys:** if a client sends the same transfer twice with the same `Idempotency-Key` header (say the connection dropped and it retried), the money only moves once and the second call gets the original result back. If the same key comes back with a different amount or account, that's almost certainly a bug in the client, so it gets a 422 and nothing moves.
 
 ## The parts I had to think hardest about
 
@@ -41,7 +41,7 @@ Java 21, Spring Boot, PostgreSQL, Flyway and Docker. Tested with JUnit, and with
 | GET | `/api/accounts/{id}/transfers` | One account's history |
 | GET | `/api/fraud-flags` | Everything that's been flagged |
 
-Transfers return **201** when the money moved, **422** when a rule refused it (still saved in the history), **400** for bad input and **404** for an unknown account. Errors come back as standard [problem details](https://www.rfc-editor.org/rfc/rfc7807) JSON with a readable `detail`.
+Transfers return **201** when the money moved, **422** when a rule refused it (still saved in the history) or an `Idempotency-Key` was reused for a different transfer (not saved), **400** for bad input and **404** for an unknown account. Errors come back as standard [problem details](https://www.rfc-editor.org/rfc/rfc7807) JSON with a readable `detail`.
 
 Full interactive docs (Swagger UI) are at `/swagger-ui.html` when it's running.
 
@@ -67,9 +67,9 @@ To try it in Postman, import `postman/mini-bank.postman_collection.json` and run
 
 ## Tests
 
-`mvn verify` (or `mvnw.cmd verify`) runs 25 tests:
+`mvn verify` (or `mvnw.cmd verify`) runs 26 tests:
 
-- **BankApiTest** goes through the real API and database for every rule: overdrafts, zero, negative and sub-penny amounts, same account, unknown accounts, history including refused transfers, both fraud rules (with the edge cases just under the limits) and idempotent retries.
+- **BankApiTest** goes through the real API and database for every rule: overdrafts, zero, negative and sub-penny amounts, same account, unknown accounts, history including refused transfers, both fraud rules (with the edge cases just under the limits), idempotent retries and a key reused for a different transfer.
 - **ConcurrencyTest** covers the simultaneous-transfer and deadlock cases above.
 - **MoneyTest** covers the pounds/pence conversion.
 
