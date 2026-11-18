@@ -5,6 +5,8 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/minibank}
     username: ${DB_USER:minibank}
     password: ${DB_PASSWORD:minibank}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}   # free cloud databases allow only a few connections
   jpa:
     open-in-view: false
     hibernate:
