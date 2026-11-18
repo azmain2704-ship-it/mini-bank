@@ -223,6 +223,24 @@ class BankApiTest {
         assertBalance(b, 10.00);
     }
 
+    @Test
+    void reusingAKeyForADifferentTransferIsRefused() throws Exception {
+        long a = openAccount("Alice", "100.00");
+        long b = openAccount("Bob", "0.00");
+        long c = openAccount("Carol", "0.00");
+        String key = "test-" + System.nanoTime();
+        transfer(a, b, "10.00", key).andExpect(status().isCreated());
+
+        // different amount, then a different recipient: both refused, and no money moves
+        transfer(a, b, "99.00", key).andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.title").value("Idempotency-Key reused"));
+        transfer(a, c, "10.00", key).andExpect(status().isUnprocessableEntity());
+
+        assertBalance(a, 90.00);
+        assertBalance(b, 10.00);
+        assertBalance(c, 0.00);
+    }
+
     // ---- helpers -----------------------------------------------------------------------------------
 
     private long openAccount(String owner, String balance) throws Exception {
