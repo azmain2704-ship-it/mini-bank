@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: mini-bank
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/minibank}
+    username: ${DB_USER:minibank}
+    password: ${DB_PASSWORD:minibank}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none          # Flyway owns the schema (src/main/resources/db/migration)
+  flyway:
+    enabled: true
+
+server:
+  port: ${PORT:8080}
+
+bank:
+  fraud:
+    large-amount: 5000.00     # pounds
+    rapid-count: 5
+    rapid-window: 60s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
