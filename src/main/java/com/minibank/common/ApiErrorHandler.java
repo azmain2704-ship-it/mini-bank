@@ -31,6 +31,15 @@ public class ApiErrorHandler extends ResponseEntityExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, "Invalid request", e.getMessage());
     }
 
+    /**
+     * Same Idempotency-Key, different transfer. 422 follows the IETF Idempotency-Key draft. Nothing is saved, because
+     * the request never got as far as the accounts.
+     */
+    @ExceptionHandler(IdempotencyKeyReusedException.class)
+    ProblemDetail keyReused(IdempotencyKeyReusedException e) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "Idempotency-Key reused", e.getMessage());
+    }
+
     /** Two requests raced with the same Idempotency-Key: the database's unique constraint let only one win. */
     @ExceptionHandler(DataIntegrityViolationException.class)
     ProblemDetail conflict(DataIntegrityViolationException e) {
